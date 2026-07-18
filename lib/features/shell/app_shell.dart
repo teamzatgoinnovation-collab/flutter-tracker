@@ -37,9 +37,9 @@ class AppShell extends StatelessWidget {
             label: 'Tasks',
           ),
           NavigationDestination(
-            icon: Icon(Icons.approval_outlined),
-            selectedIcon: Icon(Icons.approval),
-            label: 'Approvals',
+            icon: Icon(Icons.confirmation_number_outlined),
+            selectedIcon: Icon(Icons.confirmation_number),
+            label: 'Tickets',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_ethernet_outlined),

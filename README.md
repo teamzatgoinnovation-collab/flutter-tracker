@@ -2,19 +2,19 @@
 
 Field companion for `tracker` against a shared ERPNext site.
 
-## Phase 8 surface
+## Surface
 
 | Tab | APIs |
 |-----|------|
-| Dashboard | hub ping + `dashboard_summary` |
-| Projects | `list_projects` → `get_project` (+ filtered tasks) |
-| Tasks | `list_tasks` → `get_task` + `update_task_status` |
-| Approvals | `list_mine` + `approve` / `reject` |
-| Connection | site ping, Probe PT, FCM register |
+| Dashboard | hub ping + project/task counts + running now |
+| Projects | `list_projects` / `create_project` → `get_project` |
+| Tasks | My/Team `list_tasks`, create/assign, Start/Pause/Next/Stop |
+| Tickets | `list_tickets` / `create_ticket` |
+| Connection | site ping |
 
-Stack matches Delivery/Kitchen: **Riverpod** + **go_router** + `zatgo_dart_sdk`.
+Stack: **Riverpod** + **go_router** + `zatgo_dart_sdk`.
 
-Kanban / Gantt / org tree remain on Frappe Desk.
+Org setup and who-is-running detail remain on Frappe Desk (`tracker-org`, `tracker-workbench`).
 
 ## Run
 

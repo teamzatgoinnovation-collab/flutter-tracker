@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'features/approvals/approvals_page.dart';
 import 'features/connection/connection_page.dart';
 import 'features/dashboard/dashboard_page.dart';
 import 'features/login/login_page.dart';
@@ -11,6 +10,7 @@ import 'features/projects/projects_page.dart';
 import 'features/shell/app_shell.dart';
 import 'features/tasks/task_detail_page.dart';
 import 'features/tasks/tasks_page.dart';
+import 'features/tickets/tickets_page.dart';
 import 'services/session.dart';
 import 'theme.dart';
 
@@ -78,8 +78,8 @@ final _routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/approvals',
-                builder: (context, state) => const ApprovalsPage(),
+                path: '/tickets',
+                builder: (context, state) => const TicketsPage(),
               ),
             ],
           ),

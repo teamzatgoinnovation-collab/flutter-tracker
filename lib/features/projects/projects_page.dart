@@ -19,11 +19,18 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
   List<ProjectSummary> _rows = [];
   int? _total;
   bool _busy = false;
+  final _name = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _refresh();
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
   }
 
   Future<void> _refresh() async {
@@ -47,6 +54,21 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
     }
   }
 
+  Future<void> _create() async {
+    final name = _name.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(trackerRepoProvider).createProject(name);
+      _name.clear();
+      await _refresh();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,7 +89,20 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
           children: [
             Text(_status),
             if (_busy) const LinearProgressIndicator(),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(
+                labelText: 'New project name',
+                border: OutlineInputBorder(),
+              ),
+            ),
             const SizedBox(height: 8),
+            FilledButton(
+              onPressed: _busy ? null : _create,
+              child: const Text('Create'),
+            ),
+            const SizedBox(height: 12),
             if (_rows.isEmpty && !_busy)
               const Padding(
                 padding: EdgeInsets.all(24),
@@ -80,7 +115,7 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
                   title: Text(p.title),
                   subtitle: Text('${p.status ?? '—'} · ${p.company ?? '—'}'),
                   trailing: StatusChip(
-                    label: p.ragStatus ?? '—',
+                    label: p.ragStatus ?? p.status ?? '—',
                     tone: ragColor(p.ragStatus, Theme.of(context).colorScheme),
                   ),
                   onTap: () => context.go('/projects/${p.name}'),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,13 +21,42 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   List<TaskSummary> _rows = [];
   int? _total;
   bool _busy = false;
+  bool _team = false;
   String? _selected;
   Map<String, dynamic>? _active;
+  int _elapsed = 0;
+  Timer? _timer;
+  final _subject = TextEditingController();
+  final _assign = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _refresh();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _subject.dispose();
+    _assign.dispose();
+    super.dispose();
+  }
+
+  void _syncTimer() {
+    _timer?.cancel();
+    if (_active?['status'] == 'Running') {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() => _elapsed += 1);
+      });
+    }
+  }
+
+  String _fmt(int s) {
+    final h = s ~/ 3600;
+    final m = (s % 3600) ~/ 60;
+    final r = s % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${r.toString().padLeft(2, '0')}';
   }
 
   Future<void> _refresh() async {
@@ -35,15 +66,17 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     });
     try {
       final repo = ref.read(trackerRepoProvider);
-      final result = await repo.listTasks(mine: true);
+      final result = await repo.listTasks(mine: !_team, team: _team);
       final active = await repo.activeSession();
       if (!mounted) return;
       setState(() {
         _rows = result.rows;
         _total = result.total;
         _active = active;
+        _elapsed = (active?['elapsed_seconds'] as num?)?.toInt() ?? 0;
         _status = 'Connected${_total != null ? ' · $_total total' : ''}';
       });
+      _syncTimer();
     } catch (e) {
       if (!mounted) return;
       setState(() => _status = 'API error: $e');
@@ -64,12 +97,40 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     }
   }
 
+  List<({TaskSummary task, int depth})> _tree() {
+    final byParent = <String, List<TaskSummary>>{};
+    final roots = <TaskSummary>[];
+    for (final row in _rows) {
+      final p = row.parentTask ?? '';
+      if (p.isEmpty) {
+        roots.add(row);
+      } else {
+        byParent.putIfAbsent(p, () => []).add(row);
+      }
+    }
+    final out = <({TaskSummary task, int depth})>[];
+    void walk(List<TaskSummary> list, int depth) {
+      for (final t in list) {
+        out.add((task: t, depth: depth));
+        walk(byParent[t.name] ?? const [], depth + 1);
+      }
+    }
+
+    walk(roots, 0);
+    final seen = out.map((e) => e.task.name).toSet();
+    for (final t in _rows) {
+      if (!seen.contains(t.name)) out.add((task: t, depth: 0));
+    }
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
     final activeLabel = _active == null
         ? 'None'
-        : '${_active!['status']}: ${_active!['task'] ?? _active!['name']}';
+        : '${_active!['status']}: ${_active!['task'] ?? _active!['name']} · ${_fmt(_elapsed)}';
     final running = _active?['status'] == 'Running';
+    final tree = _tree();
 
     return Scaffold(
       appBar: AppBar(
@@ -89,6 +150,18 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           children: [
             Text(_status),
             if (_busy) const LinearProgressIndicator(),
+            const SizedBox(height: 8),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: false, label: Text('My Work')),
+                ButtonSegment(value: true, label: Text('Team')),
+              ],
+              selected: {_team},
+              onSelectionChanged: (s) {
+                setState(() => _team = s.first);
+                _refresh();
+              },
+            ),
             const SizedBox(height: 12),
             Card(
               child: Padding(
@@ -138,31 +211,98 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                                 ),
                           child: const Text('Next'),
                         ),
+                        OutlinedButton(
+                          onPressed: _busy || _active == null
+                              ? null
+                              : () => _run(
+                                  () => ref
+                                      .read(trackerRepoProvider)
+                                      .stopActivity(),
+                                ),
+                          child: const Text('Stop'),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _subject,
+              decoration: InputDecoration(
+                labelText: _selected == null
+                    ? 'New task subject'
+                    : 'New subtask under selection',
+                border: const OutlineInputBorder(),
+              ),
+            ),
             const SizedBox(height: 8),
-            if (_rows.isEmpty && !_busy)
+            FilledButton(
+              onPressed: _busy
+                  ? null
+                  : () {
+                      final subject = _subject.text.trim();
+                      if (subject.isEmpty) return;
+                      _run(() async {
+                        await ref.read(trackerRepoProvider).createTask(
+                              subject: subject,
+                              parentTask: _selected,
+                            );
+                        _subject.clear();
+                      });
+                    },
+              child: const Text('Create task'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _assign,
+              decoration: const InputDecoration(
+                labelText: 'Assign user@…',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: _busy || _selected == null
+                  ? null
+                  : () {
+                      final user = _assign.text.trim();
+                      if (user.isEmpty) return;
+                      _run(() async {
+                        await ref
+                            .read(trackerRepoProvider)
+                            .assignTask(_selected!, user);
+                        _assign.clear();
+                      });
+                    },
+              child: const Text('Assign selected'),
+            ),
+            const SizedBox(height: 12),
+            if (tree.isEmpty && !_busy)
               const Padding(
                 padding: EdgeInsets.all(24),
                 child: Center(child: Text('No tasks returned.')),
               ),
-            ..._rows.map(
-              (t) => Card(
+            ...tree.map(
+              (item) => Card(
                 margin: const EdgeInsets.only(bottom: 10),
-                color: _selected == t.name
+                color: _selected == item.task.name
                     ? Theme.of(context).colorScheme.primaryContainer
                     : null,
                 child: ListTile(
-                  title: Text(t.title),
-                  subtitle: Text('${t.project ?? '—'} · ${t.priority ?? '—'}'),
-                  trailing: StatusChip(label: t.status ?? '—'),
-                  selected: _selected == t.name,
-                  onTap: () => setState(() => _selected = t.name),
-                  onLongPress: () => context.go('/tasks/${t.name}'),
+                  contentPadding: EdgeInsets.only(
+                    left: 16.0 + item.depth * 16,
+                    right: 16,
+                  ),
+                  title: Text(item.task.title),
+                  subtitle: Text(
+                    '${item.task.project ?? '—'} · ${item.task.priority ?? '—'}',
+                  ),
+                  trailing: StatusChip(label: item.task.status ?? '—'),
+                  selected: _selected == item.task.name,
+                  onTap: () => setState(() => _selected = item.task.name),
+                  onLongPress: () => context.go('/tasks/${item.task.name}'),
                 ),
               ),
             ),

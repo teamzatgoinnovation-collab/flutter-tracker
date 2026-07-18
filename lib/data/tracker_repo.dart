@@ -14,22 +14,20 @@ class TrackerRepo {
   }
 
   Future<DashboardStats> dashboardSummary() async {
-    final env = await _session.store.callMethod(
-      ZatGoApiMethods.tasksList,
-      args: {'mine': 1, 'page': 1, 'page_size': 100},
-    );
-    final rows = _tasks(env.data);
-    final open = rows
+    final projects = await listProjects(pageSize: 200);
+    final tasks = await listTasks(mine: true, pageSize: 200);
+    final running = await listRunningNow();
+    final open = tasks.rows
         .where((t) => t.status != 'Completed' && t.status != 'Cancelled')
         .length;
     return DashboardStats(
-      tasksOpen: open,
-      projectsActive: rows
-          .map((t) => t.project)
-          .whereType<String>()
-          .toSet()
+      projectsTotal: projects.rows.length,
+      projectsActive: projects.rows
+          .where((p) => p.status == 'Open' || p.status == 'Completed')
           .length,
-      tasksCompleted: rows.where((t) => t.status == 'Completed').length,
+      tasksOpen: open,
+      tasksCompleted: tasks.rows.where((t) => t.status == 'Completed').length,
+      runningNow: running.length,
     );
   }
 
@@ -42,6 +40,18 @@ class TrackerRepo {
       args: {'page': page, 'page_size': pageSize},
     );
     return (rows: _projects(env.data), total: _total(env.meta));
+  }
+
+  Future<ProjectSummary> createProject(String projectName) async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.projectsCreate,
+      args: {'project_name': projectName},
+    );
+    final data = env.data;
+    if (data is! Map) {
+      throw ZatGoApiError(code: 'EMPTY', message: 'Create project failed');
+    }
+    return ProjectSummary.fromJson(Map<String, dynamic>.from(data));
   }
 
   Future<ProjectSummary> getProject(String name) async {
@@ -60,12 +70,16 @@ class TrackerRepo {
     int page = 1,
     int pageSize = 50,
     String? project,
-    bool mine = true,
+    bool mine = false,
+    bool team = false,
+    bool tree = true,
   }) async {
     final args = <String, dynamic>{
       'page': page,
       'page_size': pageSize,
-      'mine': mine ? 1 : 0,
+      if (mine) 'mine': 1,
+      if (team) 'team': 1,
+      if (tree) 'tree': 1,
     };
     if (project != null && project.isNotEmpty) {
       args['project'] = project;
@@ -75,6 +89,34 @@ class TrackerRepo {
       args: args,
     );
     return (rows: _tasks(env.data), total: _total(env.meta));
+  }
+
+  Future<TaskSummary> createTask({
+    required String subject,
+    String? project,
+    String? parentTask,
+  }) async {
+    final args = <String, dynamic>{'subject': subject};
+    if (project != null && project.isNotEmpty) args['project'] = project;
+    if (parentTask != null && parentTask.isNotEmpty) {
+      args['parent_task'] = parentTask;
+    }
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.tasksCreate,
+      args: args,
+    );
+    final data = env.data;
+    if (data is! Map) {
+      throw ZatGoApiError(code: 'EMPTY', message: 'Create task failed');
+    }
+    return TaskSummary.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  Future<void> assignTask(String name, String user) async {
+    await _session.store.callMethod(
+      ZatGoApiMethods.hierarchyAssign,
+      args: {'doctype': 'Task', 'name': name, 'user': user},
+    );
   }
 
   Future<TaskSummary> getTask(String name) async {
@@ -96,11 +138,45 @@ class TrackerRepo {
     );
   }
 
+  Future<({List<TicketSummary> rows, int? total})> listTickets({
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.ticketsList,
+      args: {'page': page, 'page_size': pageSize},
+    );
+    return (rows: _tickets(env.data), total: _total(env.meta));
+  }
+
+  Future<TicketSummary> createTicket(String subject) async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.ticketsCreate,
+      args: {'subject': subject},
+    );
+    final data = env.data;
+    if (data is! Map) {
+      throw ZatGoApiError(code: 'EMPTY', message: 'Create ticket failed');
+    }
+    return TicketSummary.fromJson(Map<String, dynamic>.from(data));
+  }
+
   Future<Map<String, dynamic>?> activeSession() async {
     final env = await _session.store.callMethod(ZatGoApiMethods.activityActive);
     final data = env.data;
     if (data is Map) return Map<String, dynamic>.from(data);
     return null;
+  }
+
+  Future<List<Map<String, dynamic>>> listRunningNow() async {
+    final env =
+        await _session.store.callMethod(ZatGoApiMethods.activityRunningNow);
+    final data = env.data;
+    if (data is! List) return [];
+    return data
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
   }
 
   Future<void> startActivity(String task) async {
@@ -121,13 +197,9 @@ class TrackerRepo {
     );
   }
 
-  Future<List<ApprovalItem>> listApprovalsMine() async {
-    return [];
+  Future<void> stopActivity() async {
+    await _session.store.callMethod(ZatGoApiMethods.activityStop);
   }
-
-  Future<void> approve(String name) async {}
-
-  Future<void> reject(String name, {String? reason}) async {}
 
   List<ProjectSummary> _projects(dynamic data) {
     if (data is! List) return [];
@@ -142,6 +214,14 @@ class TrackerRepo {
     return data
         .whereType<Map>()
         .map((e) => TaskSummary.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  List<TicketSummary> _tickets(dynamic data) {
+    if (data is! List) return [];
+    return data
+        .whereType<Map>()
+        .map((e) => TicketSummary.fromJson(Map<String, dynamic>.from(e)))
         .toList();
   }
 

@@ -6,6 +6,7 @@ class DashboardStats {
     this.projectsRagRed = 0,
     this.tasksOpen = 0,
     this.tasksCompleted = 0,
+    this.runningNow = 0,
   });
 
   final int projectsTotal;
@@ -14,19 +15,7 @@ class DashboardStats {
   final int projectsRagRed;
   final int tasksOpen;
   final int tasksCompleted;
-
-  factory DashboardStats.fromJson(Map<String, dynamic>? json) {
-    if (json == null) return const DashboardStats();
-    int n(dynamic v) => v is num ? v.toInt() : int.tryParse('$v') ?? 0;
-    return DashboardStats(
-      projectsTotal: n(json['projects_total']),
-      projectsActive: n(json['projects_active']),
-      projectsOnHold: n(json['projects_on_hold']),
-      projectsRagRed: n(json['projects_rag_red']),
-      tasksOpen: n(json['tasks_open']),
-      tasksCompleted: n(json['tasks_completed']),
-    );
-  }
+  final int runningNow;
 }
 
 class ProjectSummary {
@@ -67,6 +56,7 @@ class TaskSummary {
     this.status,
     this.project,
     this.priority,
+    this.parentTask,
     this.description,
   });
 
@@ -75,6 +65,7 @@ class TaskSummary {
   final String? status;
   final String? project;
   final String? priority;
+  final String? parentTask;
   final String? description;
 
   String get title => (subject?.isNotEmpty == true) ? subject! : name;
@@ -86,34 +77,36 @@ class TaskSummary {
       status: json['status']?.toString(),
       project: json['project']?.toString(),
       priority: json['priority']?.toString(),
+      parentTask: json['parent_task']?.toString(),
       description: json['description']?.toString(),
     );
   }
 }
 
-class ApprovalItem {
-  const ApprovalItem({
+class TicketSummary {
+  const TicketSummary({
     required this.name,
-    this.entityType,
-    this.entityName,
+    this.subject,
     this.status,
-    this.requestedBy,
+    this.project,
+    this.priority,
   });
 
   final String name;
-  final String? entityType;
-  final String? entityName;
+  final String? subject;
   final String? status;
-  final String? requestedBy;
+  final String? project;
+  final String? priority;
 
-  factory ApprovalItem.fromJson(Map<String, dynamic> json) {
-    return ApprovalItem(
+  String get title => (subject?.isNotEmpty == true) ? subject! : name;
+
+  factory TicketSummary.fromJson(Map<String, dynamic> json) {
+    return TicketSummary(
       name: '${json['name'] ?? ''}',
-      entityType: json['entity_type']?.toString(),
-      entityName: json['entity_name']?.toString(),
+      subject: json['subject']?.toString(),
       status: json['status']?.toString(),
-      requestedBy:
-          json['requested_by']?.toString() ?? json['owner']?.toString(),
+      project: json['project']?.toString(),
+      priority: json['priority']?.toString(),
     );
   }
 }
