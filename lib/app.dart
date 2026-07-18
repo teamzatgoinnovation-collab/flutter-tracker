@@ -97,14 +97,14 @@ final _routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class ProjectTrackerApp extends ConsumerWidget {
-  const ProjectTrackerApp({super.key});
+class TrackerApp extends ConsumerWidget {
+  const TrackerApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(_routerProvider);
     return MaterialApp.router(
-      title: 'Project Tracker',
+      title: 'Tracker',
       theme: buildProjectTrackerTheme(),
       routerConfig: router,
       debugShowCheckedModeBanner: false,

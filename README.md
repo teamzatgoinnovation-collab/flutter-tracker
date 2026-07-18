@@ -1,6 +1,6 @@
-# Project Tracker (Flutter)
+# Tracker (Flutter)
 
-Field companion for `project_tracker` against a shared ERPNext site.
+Field companion for `tracker` against a shared ERPNext site.
 
 ## Phase 8 surface
 
@@ -19,7 +19,7 @@ Kanban / Gantt / org tree remain on Frappe Desk.
 ## Run
 
 ```bash
-cd Clients/flutter/project_tracker
+cd Clients/flutter/tracker
 flutter pub get
 flutter run \
   --dart-define=FRAPPE_BASE_URL=http://127.0.0.1:8082

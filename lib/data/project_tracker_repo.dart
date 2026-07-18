@@ -10,16 +10,23 @@ class ProjectTrackerRepo {
   final ProjectTrackerSession _session;
 
   Future<void> pingHub() async {
-    await _session.store.callMethod(ZatGoApiMethods.projectTrackerPing);
+    await _session.store.callMethod(ZatGoApiMethods.healthPing);
   }
 
   Future<DashboardStats> dashboardSummary() async {
     final env = await _session.store.callMethod(
-      ZatGoApiMethods.projectsDashboardSummary,
+      ZatGoApiMethods.tasksList,
+      args: {'mine': 1, 'page': 1, 'page_size': 100},
     );
-    final data = env.data;
-    return DashboardStats.fromJson(
-      data is Map ? Map<String, dynamic>.from(data) : null,
+    final rows = _tasks(env.data);
+    final open = rows
+        .where((t) => t.status != 'Completed' && t.status != 'Cancelled')
+        .length;
+    return DashboardStats(
+      tasksOpen: open,
+      projectsActive:
+          rows.map((t) => t.project).whereType<String>().toSet().length,
+      tasksCompleted: rows.where((t) => t.status == 'Completed').length,
     );
   }
 
@@ -50,10 +57,15 @@ class ProjectTrackerRepo {
     int page = 1,
     int pageSize = 50,
     String? project,
+    bool mine = true,
   }) async {
-    final args = <String, dynamic>{'page': page, 'page_size': pageSize};
+    final args = <String, dynamic>{
+      'page': page,
+      'page_size': pageSize,
+      'mine': mine ? 1 : 0,
+    };
     if (project != null && project.isNotEmpty) {
-      args['filters'] = {'project': project};
+      args['project'] = project;
     }
     final env = await _session.store.callMethod(
       ZatGoApiMethods.tasksList,
@@ -81,46 +93,44 @@ class ProjectTrackerRepo {
     );
   }
 
-  Future<List<ApprovalItem>> listApprovalsMine() async {
-    final env = await _session.store.callMethod(
-      ZatGoApiMethods.approvalsListMine,
-    );
+  Future<Map<String, dynamic>?> activeSession() async {
+    final env = await _session.store.callMethod(ZatGoApiMethods.activityActive);
     final data = env.data;
-    if (data is List) {
-      return data
-          .whereType<Map>()
-          .map((e) => ApprovalItem.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
-    }
-    if (data is Map && data['items'] is List) {
-      return (data['items'] as List)
-          .whereType<Map>()
-          .map((e) => ApprovalItem.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
-    }
+    if (data is Map) return Map<String, dynamic>.from(data);
+    return null;
+  }
+
+  Future<void> startActivity(String task) async {
+    await _session.store.callMethod(
+      ZatGoApiMethods.activityStart,
+      args: {'task': task},
+    );
+  }
+
+  Future<void> pauseActivity() async {
+    await _session.store.callMethod(ZatGoApiMethods.activityPause);
+  }
+
+  Future<void> nextActivity(String task) async {
+    await _session.store.callMethod(
+      ZatGoApiMethods.activityNext,
+      args: {'task': task},
+    );
+  }
+
+  Future<List<ApprovalItem>> listApprovalsMine() async {
     return [];
   }
 
-  Future<void> approve(String name) async {
-    await _session.store.callMethod(
-      ZatGoApiMethods.approvalsApprove,
-      args: {'name': name},
-    );
-  }
+  Future<void> approve(String name) async {}
 
-  Future<void> reject(String name, {String? reason}) async {
-    await _session.store.callMethod(
-      ZatGoApiMethods.approvalsReject,
-      args: {'name': name, 'reason': ?reason},
-    );
-  }
+  Future<void> reject(String name, {String? reason}) async {}
 
   List<ProjectSummary> _projects(dynamic data) {
     if (data is! List) return [];
     return data
         .whereType<Map>()
         .map((e) => ProjectSummary.fromJson(Map<String, dynamic>.from(e)))
-        .where((p) => p.name.isNotEmpty)
         .toList();
   }
 
@@ -129,17 +139,19 @@ class ProjectTrackerRepo {
     return data
         .whereType<Map>()
         .map((e) => TaskSummary.fromJson(Map<String, dynamic>.from(e)))
-        .where((t) => t.name.isNotEmpty)
         .toList();
   }
 
   int? _total(Map<String, dynamic>? meta) {
-    final t = meta?['total'];
+    if (meta == null) return null;
+    final t = meta['total'];
+    if (t is int) return t;
     if (t is num) return t.toInt();
-    return int.tryParse('$t');
+    return null;
   }
 }
 
 final projectTrackerRepoProvider = Provider<ProjectTrackerRepo>((ref) {
-  return ProjectTrackerRepo(ref.watch(projectTrackerSessionProvider));
+  final session = ref.watch(projectTrackerSessionProvider);
+  return ProjectTrackerRepo(session);
 });
