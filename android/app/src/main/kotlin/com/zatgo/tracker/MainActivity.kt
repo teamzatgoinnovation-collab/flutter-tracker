@@ -1,4 +1,4 @@
-package com.zatgo.project_tracker
+package com.zatgo.tracker
 
 import io.flutter.embedding.android.FlutterActivity
 

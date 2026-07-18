@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zatgo_dart_sdk/zatgo_dart_sdk.dart';
 
-class ProjectTrackerSession extends ChangeNotifier {
-  ProjectTrackerSession() {
+class TrackerSession extends ChangeNotifier {
+  TrackerSession() {
     final base = const String.fromEnvironment(
       'FRAPPE_BASE_URL',
       defaultValue: 'http://127.0.0.1:8082',
@@ -65,7 +65,7 @@ class ProjectTrackerSession extends ChangeNotifier {
   Future<ErpnextPingResult> ping() => erpnextPing(baseUrl);
 }
 
-final projectTrackerSessionProvider =
-    ChangeNotifierProvider<ProjectTrackerSession>((ref) {
-      return ProjectTrackerSession();
+final trackerSessionProvider =
+    ChangeNotifierProvider<TrackerSession>((ref) {
+      return TrackerSession();
     });

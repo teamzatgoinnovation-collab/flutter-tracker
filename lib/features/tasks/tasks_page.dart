@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/project_tracker_repo.dart';
-import '../../models/project_tracker_models.dart';
+import '../../data/tracker_repo.dart';
+import '../../models/tracker_models.dart';
 import '../../widgets/sign_out_action.dart';
 import '../../widgets/status_chip.dart';
 
@@ -34,7 +34,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       _status = 'Loading…';
     });
     try {
-      final repo = ref.read(projectTrackerRepoProvider);
+      final repo = ref.read(trackerRepoProvider);
       final result = await repo.listTasks(mine: true);
       final active = await repo.activeSession();
       if (!mounted) return;
@@ -59,9 +59,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       await _refresh();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
       setState(() => _busy = false);
     }
   }
@@ -98,8 +96,14 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Active session', style: Theme.of(context).textTheme.labelMedium),
-                    Text(activeLabel, style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'Active session',
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                    Text(
+                      activeLabel,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -108,30 +112,30 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                           onPressed: _busy || _selected == null || running
                               ? null
                               : () => _run(
-                                    () => ref
-                                        .read(projectTrackerRepoProvider)
-                                        .startActivity(_selected!),
-                                  ),
+                                  () => ref
+                                      .read(trackerRepoProvider)
+                                      .startActivity(_selected!),
+                                ),
                           child: const Text('Start'),
                         ),
                         FilledButton.tonal(
                           onPressed: _busy || !running
                               ? null
                               : () => _run(
-                                    () => ref
-                                        .read(projectTrackerRepoProvider)
-                                        .pauseActivity(),
-                                  ),
+                                  () => ref
+                                      .read(trackerRepoProvider)
+                                      .pauseActivity(),
+                                ),
                           child: const Text('Pause'),
                         ),
                         OutlinedButton(
                           onPressed: _busy || _selected == null
                               ? null
                               : () => _run(
-                                    () => ref
-                                        .read(projectTrackerRepoProvider)
-                                        .nextActivity(_selected!),
-                                  ),
+                                  () => ref
+                                      .read(trackerRepoProvider)
+                                      .nextActivity(_selected!),
+                                ),
                           child: const Text('Next'),
                         ),
                       ],

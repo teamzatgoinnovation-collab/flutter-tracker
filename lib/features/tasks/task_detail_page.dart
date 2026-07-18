@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/project_tracker_repo.dart';
-import '../../models/project_tracker_models.dart';
+import '../../data/tracker_repo.dart';
+import '../../models/tracker_models.dart';
 import '../../widgets/status_chip.dart';
 
 class TaskDetailPage extends ConsumerStatefulWidget {
@@ -33,7 +33,7 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
     });
     try {
       final task = await ref
-          .read(projectTrackerRepoProvider)
+          .read(trackerRepoProvider)
           .getTask(widget.name);
       if (!mounted) return;
       setState(() {
@@ -52,7 +52,7 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
     setState(() => _busy = true);
     try {
       await ref
-          .read(projectTrackerRepoProvider)
+          .read(trackerRepoProvider)
           .updateTaskStatus(widget.name, next);
       await _refresh();
       if (!mounted) return;

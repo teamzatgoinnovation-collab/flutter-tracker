@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/project_tracker_repo.dart';
-import '../../models/project_tracker_models.dart';
+import '../../data/tracker_repo.dart';
+import '../../models/tracker_models.dart';
 import '../../widgets/status_chip.dart';
 
 class ProjectDetailPage extends ConsumerStatefulWidget {
@@ -33,7 +33,7 @@ class _ProjectDetailPageState extends ConsumerState<ProjectDetailPage> {
       _status = 'Loading…';
     });
     try {
-      final repo = ref.read(projectTrackerRepoProvider);
+      final repo = ref.read(trackerRepoProvider);
       final project = await repo.getProject(widget.name);
       final tasks = await repo.listTasks(project: widget.name, pageSize: 50);
       if (!mounted) return;

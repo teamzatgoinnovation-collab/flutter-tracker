@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/project_tracker_repo.dart';
-import '../../models/project_tracker_models.dart';
+import '../../data/tracker_repo.dart';
+import '../../models/tracker_models.dart';
 import '../../widgets/sign_out_action.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
@@ -30,7 +30,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       _status = 'Loading…';
     });
     try {
-      final repo = ref.read(projectTrackerRepoProvider);
+      final repo = ref.read(trackerRepoProvider);
       await repo.pingHub();
       final stats = await repo.dashboardSummary();
       if (!mounted) return;

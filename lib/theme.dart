@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-ThemeData buildProjectTrackerTheme() {
+ThemeData buildTrackerTheme() {
   const seed = Color(0xFF1B4D3E);
   final scheme = ColorScheme.fromSeed(
     seedColor: seed,

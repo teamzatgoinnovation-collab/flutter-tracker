@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zatgo_dart_sdk/zatgo_dart_sdk.dart';
 
-import '../models/project_tracker_models.dart';
+import '../models/tracker_models.dart';
 import '../services/session.dart';
 
-class ProjectTrackerRepo {
-  ProjectTrackerRepo(this._session);
+class TrackerRepo {
+  TrackerRepo(this._session);
 
-  final ProjectTrackerSession _session;
+  final TrackerSession _session;
 
   Future<void> pingHub() async {
     await _session.store.callMethod(ZatGoApiMethods.healthPing);
@@ -24,8 +24,11 @@ class ProjectTrackerRepo {
         .length;
     return DashboardStats(
       tasksOpen: open,
-      projectsActive:
-          rows.map((t) => t.project).whereType<String>().toSet().length,
+      projectsActive: rows
+          .map((t) => t.project)
+          .whereType<String>()
+          .toSet()
+          .length,
       tasksCompleted: rows.where((t) => t.status == 'Completed').length,
     );
   }
@@ -151,7 +154,7 @@ class ProjectTrackerRepo {
   }
 }
 
-final projectTrackerRepoProvider = Provider<ProjectTrackerRepo>((ref) {
-  final session = ref.watch(projectTrackerSessionProvider);
-  return ProjectTrackerRepo(session);
+final trackerRepoProvider = Provider<TrackerRepo>((ref) {
+  final session = ref.watch(trackerSessionProvider);
+  return TrackerRepo(session);
 });

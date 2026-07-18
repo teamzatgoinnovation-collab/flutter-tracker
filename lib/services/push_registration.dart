@@ -11,7 +11,7 @@ import 'session.dart';
 class PushRegistration {
   PushRegistration(this.session);
 
-  final ProjectTrackerSession session;
+  final TrackerSession session;
 
   Future<String> registerIfPossible() async {
     if (kIsWeb) {
@@ -38,7 +38,7 @@ class PushRegistration {
       args: {
         'token': token,
         'platform': platform,
-        'app_id': 'project_tracker_mobile',
+        'app_id': 'tracker_mobile',
       },
     );
     final data = envelope.data;

@@ -15,7 +15,7 @@ import 'services/session.dart';
 import 'theme.dart';
 
 final _routerProvider = Provider<GoRouter>((ref) {
-  final session = ref.watch(projectTrackerSessionProvider);
+  final session = ref.watch(trackerSessionProvider);
 
   return GoRouter(
     initialLocation: '/dashboard',
@@ -105,7 +105,7 @@ class TrackerApp extends ConsumerWidget {
     final router = ref.watch(_routerProvider);
     return MaterialApp.router(
       title: 'Tracker',
-      theme: buildProjectTrackerTheme(),
+      theme: buildTrackerTheme(),
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/project_tracker_repo.dart';
-import '../../models/project_tracker_models.dart';
+import '../../data/tracker_repo.dart';
+import '../../models/tracker_models.dart';
 import '../../widgets/sign_out_action.dart';
 import '../../widgets/status_chip.dart';
 
@@ -31,7 +31,7 @@ class _ApprovalsPageState extends ConsumerState<ApprovalsPage> {
     });
     try {
       final rows = await ref
-          .read(projectTrackerRepoProvider)
+          .read(trackerRepoProvider)
           .listApprovalsMine();
       if (!mounted) return;
       setState(() {
@@ -49,7 +49,7 @@ class _ApprovalsPageState extends ConsumerState<ApprovalsPage> {
   Future<void> _approve(ApprovalItem item) async {
     setState(() => _busy = true);
     try {
-      await ref.read(projectTrackerRepoProvider).approve(item.name);
+      await ref.read(trackerRepoProvider).approve(item.name);
       await _refresh();
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -67,7 +67,7 @@ class _ApprovalsPageState extends ConsumerState<ApprovalsPage> {
   Future<void> _reject(ApprovalItem item) async {
     setState(() => _busy = true);
     try {
-      await ref.read(projectTrackerRepoProvider).reject(item.name);
+      await ref.read(trackerRepoProvider).reject(item.name);
       await _refresh();
       if (!mounted) return;
       ScaffoldMessenger.of(

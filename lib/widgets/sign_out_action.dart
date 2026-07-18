@@ -11,7 +11,7 @@ class SignOutAction extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return TextButton(
       onPressed: () async {
-        await ref.read(projectTrackerSessionProvider).logout();
+        await ref.read(trackerSessionProvider).logout();
         if (context.mounted) context.go('/login');
       },
       child: const Text('Sign out'),

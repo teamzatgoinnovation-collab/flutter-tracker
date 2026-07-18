@@ -25,7 +25,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _login() async {
-    final session = ref.read(projectTrackerSessionProvider);
+    final session = ref.read(trackerSessionProvider);
     setState(() => _busy = true);
     final result = await session.login(usr: _usr.text.trim(), pwd: _pwd.text);
     if (!mounted) return;
@@ -44,7 +44,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(projectTrackerSessionProvider);
+    final session = ref.watch(trackerSessionProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -63,7 +63,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                 ),
                 Text(
-                  'Project Tracker',
+                  'Tracker',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineMedium,
                 ),

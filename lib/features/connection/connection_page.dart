@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/project_tracker_repo.dart';
+import '../../data/tracker_repo.dart';
 import '../../services/push_registration.dart';
 import '../../services/session.dart';
 import '../../widgets/sign_out_action.dart';
@@ -20,7 +20,7 @@ class _ConnectionPageState extends ConsumerState<ConnectionPage> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(projectTrackerSessionProvider);
+    final session = ref.watch(trackerSessionProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -34,7 +34,7 @@ class _ConnectionPageState extends ConsumerState<ConnectionPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'ERPNext session for Project Tracker APIs.',
+              'ERPNext session for Tracker APIs.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -94,7 +94,7 @@ class _ConnectionPageState extends ConsumerState<ConnectionPage> {
                                   });
                                   try {
                                     final result = await ref
-                                        .read(projectTrackerRepoProvider)
+                                        .read(trackerRepoProvider)
                                         .listProjects(pageSize: 5);
                                     if (!mounted) return;
                                     setState(() {
