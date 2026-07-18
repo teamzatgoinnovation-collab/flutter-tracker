@@ -16,6 +16,7 @@ class DashboardPage extends ConsumerStatefulWidget {
 class _DashboardPageState extends ConsumerState<DashboardPage> {
   String _status = 'Loading…';
   DashboardStats? _stats;
+  List<Map<String, dynamic>> _running = [];
   bool _busy = false;
 
   @override
@@ -33,9 +34,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       final repo = ref.read(trackerRepoProvider);
       await repo.pingHub();
       final stats = await repo.dashboardSummary();
+      final running = await repo.listRunningNow();
       if (!mounted) return;
       setState(() {
         _stats = stats;
+        _running = running;
         _status = 'Connected';
       });
     } catch (e) {
@@ -78,6 +81,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   _StatCard(label: 'Done', value: '${stats.tasksCompleted}'),
                   _StatCard(label: 'Running', value: '${stats.runningNow}'),
                 ],
+              ),
+            const SizedBox(height: 24),
+            Text('Who is running', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            if (_running.isEmpty)
+              const Text('No active timers.')
+            else
+              ..._running.map(
+                (r) => ListTile(
+                  dense: true,
+                  title: Text('${r['user'] ?? '—'}'),
+                  subtitle: Text('${r['task'] ?? r['project'] ?? r['name'] ?? '—'}'),
+                  trailing: Text(_fmtElapsed(r['elapsed_seconds'])),
+                ),
               ),
             const SizedBox(height: 24),
             ListTile(
@@ -130,4 +147,12 @@ class _StatCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _fmtElapsed(dynamic sec) {
+  final s = (sec is num ? sec.toInt() : int.tryParse('$sec') ?? 0).clamp(0, 1 << 31);
+  final h = s ~/ 3600;
+  final m = (s % 3600) ~/ 60;
+  final r = s % 60;
+  return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${r.toString().padLeft(2, '0')}';
 }

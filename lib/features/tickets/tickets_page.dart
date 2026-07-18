@@ -17,6 +17,9 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
   String _status = 'Loading…';
   List<TicketSummary> _rows = [];
   bool _busy = false;
+  String? _selected;
+  String? _assignUser;
+  List<Map<String, dynamic>> _people = [];
   final _subject = TextEditingController();
 
   @override
@@ -37,10 +40,14 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
       _status = 'Loading…';
     });
     try {
-      final result = await ref.read(trackerRepoProvider).listTickets();
+      final repo = ref.read(trackerRepoProvider);
+      final result = await repo.listTickets();
+      final people = await repo.myTreePeople();
       if (!mounted) return;
       setState(() {
         _rows = result.rows;
+        _people = people;
+        _assignUser ??= people.isNotEmpty ? '${people.first['user']}' : null;
         _status = 'Connected · ${_rows.length} tickets';
       });
     } catch (e) {
@@ -66,6 +73,21 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
     }
   }
 
+  Future<void> _assign() async {
+    if (_selected == null || _assignUser == null) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(trackerRepoProvider).assignTicket(_selected!, _assignUser!);
+      await _refresh();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Assign failed: $e')),
+      );
+      setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,30 +109,55 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
             Text(_status),
             if (_busy) const LinearProgressIndicator(),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _subject,
-                    decoration: const InputDecoration(
-                      labelText: 'New ticket subject',
-                      border: OutlineInputBorder(),
+            TextField(
+              controller: _subject,
+              decoration: const InputDecoration(
+                labelText: 'New ticket subject',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _assignUser,
+              decoration: const InputDecoration(
+                labelText: 'Assign to',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                for (final p in _people)
+                  DropdownMenuItem(
+                    value: '${p['user']}',
+                    child: Text(
+                      '${p['full_name'] ?? p['user']}${p['is_self'] == true ? ' (you)' : ''}',
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
+              ],
+              onChanged: (v) => setState(() => _assignUser = v),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
                 FilledButton(
                   onPressed: _busy ? null : _create,
                   child: const Text('Create'),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: _busy || _selected == null || _assignUser == null
+                      ? null
+                      : _assign,
+                  child: const Text('Assign selected'),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             for (final row in _rows)
               ListTile(
+                selected: _selected == row.name,
                 title: Text(row.title),
                 subtitle: Text(row.project ?? '—'),
                 trailing: StatusChip(label: row.status ?? '—'),
+                onTap: () => setState(() => _selected = row.name),
               ),
           ],
         ),

@@ -119,6 +119,25 @@ class TrackerRepo {
     );
   }
 
+  Future<void> assignTicket(String name, String user) async {
+    await _session.store.callMethod(
+      ZatGoApiMethods.hierarchyAssign,
+      args: {'doctype': 'Issue', 'name': name, 'user': user},
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> myTreePeople() async {
+    final env = await _session.store.callMethod(ZatGoApiMethods.hierarchyMyTree);
+    final data = env.data;
+    if (data is! Map) return [];
+    final people = data['people'];
+    if (people is! List) return [];
+    return people
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
   Future<TaskSummary> getTask(String name) async {
     final env = await _session.store.callMethod(
       ZatGoApiMethods.tasksGet,
@@ -169,8 +188,9 @@ class TrackerRepo {
   }
 
   Future<List<Map<String, dynamic>>> listRunningNow() async {
-    final env =
-        await _session.store.callMethod(ZatGoApiMethods.activityRunningNow);
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.activityRunningNow,
+    );
     final data = env.data;
     if (data is! List) return [];
     return data

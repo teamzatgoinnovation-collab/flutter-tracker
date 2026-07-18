@@ -27,7 +27,8 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   int _elapsed = 0;
   Timer? _timer;
   final _subject = TextEditingController();
-  final _assign = TextEditingController();
+  List<Map<String, dynamic>> _people = [];
+  String? _assignUser;
 
   @override
   void initState() {
@@ -39,7 +40,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   void dispose() {
     _timer?.cancel();
     _subject.dispose();
-    _assign.dispose();
     super.dispose();
   }
 
@@ -68,11 +68,14 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       final repo = ref.read(trackerRepoProvider);
       final result = await repo.listTasks(mine: !_team, team: _team);
       final active = await repo.activeSession();
+      final people = await repo.myTreePeople();
       if (!mounted) return;
       setState(() {
         _rows = result.rows;
         _total = result.total;
         _active = active;
+        _people = people;
+        _assignUser ??= people.isNotEmpty ? '${people.first['user']}' : null;
         _elapsed = (active?['elapsed_seconds'] as num?)?.toInt() ?? 0;
         _status = 'Connected${_total != null ? ' · $_total total' : ''}';
       });
@@ -245,7 +248,9 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                       final subject = _subject.text.trim();
                       if (subject.isEmpty) return;
                       _run(() async {
-                        await ref.read(trackerRepoProvider).createTask(
+                        await ref
+                            .read(trackerRepoProvider)
+                            .createTask(
                               subject: subject,
                               parentTask: _selected,
                             );
@@ -255,25 +260,33 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               child: const Text('Create task'),
             ),
             const SizedBox(height: 8),
-            TextField(
-              controller: _assign,
+            DropdownButtonFormField<String>(
+              value: _assignUser,
               decoration: const InputDecoration(
-                labelText: 'Assign user@…',
+                labelText: 'Assign to',
                 border: OutlineInputBorder(),
               ),
+              items: [
+                for (final p in _people)
+                  DropdownMenuItem(
+                    value: '${p['user']}',
+                    child: Text(
+                      '${p['full_name'] ?? p['user']}${p['is_self'] == true ? ' (you)' : ''}',
+                    ),
+                  ),
+              ],
+              onChanged: (v) => setState(() => _assignUser = v),
             ),
             const SizedBox(height: 8),
             OutlinedButton(
-              onPressed: _busy || _selected == null
+              onPressed: _busy || _selected == null || _assignUser == null
                   ? null
                   : () {
-                      final user = _assign.text.trim();
-                      if (user.isEmpty) return;
+                      final user = _assignUser!;
                       _run(() async {
                         await ref
                             .read(trackerRepoProvider)
                             .assignTask(_selected!, user);
-                        _assign.clear();
                       });
                     },
               child: const Text('Assign selected'),
