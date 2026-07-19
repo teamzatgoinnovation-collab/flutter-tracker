@@ -29,6 +29,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   final _subject = TextEditingController();
   List<Map<String, dynamic>> _people = [];
   String? _assignUser;
+  bool _canManage = false;
 
   @override
   void initState() {
@@ -68,6 +69,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       final repo = ref.read(trackerRepoProvider);
       final result = await repo.listTasks(mine: !_team, team: _team);
       final active = await repo.activeSession();
+      final caps = await repo.myCapabilities();
       final people = await repo.myTreePeople();
       await repo.setLastFilter(scope: _team ? 'team' : 'mine');
       if (!mounted) return;
@@ -76,6 +78,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
         _total = result.total;
         _active = active;
         _people = people;
+        _canManage = caps['can_manage_work'] == true;
         _assignUser ??= people.isNotEmpty ? '${people.first['user']}' : null;
         _elapsed = (active?['elapsed_seconds'] as num?)?.toInt() ?? 0;
         _status = 'Connected${_total != null ? ' · $_total total' : ''}';
@@ -232,93 +235,98 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _subject,
-              decoration: InputDecoration(
-                labelText: _selected == null
-                    ? 'New task subject'
-                    : 'New subtask under selection',
-                border: const OutlineInputBorder(),
+            if (_canManage) ...[
+              TextField(
+                controller: _subject,
+                decoration: InputDecoration(
+                  labelText: _selected == null
+                      ? 'New task subject (Draft)'
+                      : 'New subtask under selection',
+                  border: const OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: _busy
-                  ? null
-                  : () {
-                      final subject = _subject.text.trim();
-                      if (subject.isEmpty) return;
-                      _run(() async {
-                        await ref
-                            .read(trackerRepoProvider)
-                            .createTask(
-                              subject: subject,
-                              parentTask: _selected,
-                            );
-                        _subject.clear();
-                      });
-                    },
-              child: const Text('Create task'),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _assignUser,
-              decoration: const InputDecoration(
-                labelText: 'Assign to',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 8),
+              FilledButton(
+                onPressed: _busy
+                    ? null
+                    : () {
+                        final subject = _subject.text.trim();
+                        if (subject.isEmpty) return;
+                        _run(() async {
+                          await ref
+                              .read(trackerRepoProvider)
+                              .createTask(
+                                subject: subject,
+                                parentTask: _selected,
+                              );
+                          _subject.clear();
+                        });
+                      },
+                child: const Text('Create task'),
               ),
-              items: [
-                for (final p in _people)
-                  DropdownMenuItem(
-                    value: '${p['user']}',
-                    child: Text(
-                      '${p['full_name'] ?? p['user']}${p['is_self'] == true ? ' (you)' : ''}',
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _assignUser,
+                decoration: const InputDecoration(
+                  labelText: 'Assign to',
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  for (final p in _people)
+                    DropdownMenuItem(
+                      value: '${p['user']}',
+                      child: Text(
+                        '${p['full_name'] ?? p['user']}${p['is_self'] == true ? ' (you)' : ''}',
+                      ),
                     ),
-                  ),
-              ],
-              onChanged: (v) => setState(() => _assignUser = v),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton(
-              onPressed: _busy || _selected == null || _assignUser == null
-                  ? null
-                  : () {
-                      final user = _assignUser!;
-                      _run(() async {
-                        await ref
-                            .read(trackerRepoProvider)
-                            .assignTask(_selected!, user);
-                      });
-                    },
-              child: const Text('Assign selected'),
-            ),
-            const SizedBox(height: 12),
+                ],
+                onChanged: (v) => setState(() => _assignUser = v),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: _busy || _selected == null || _assignUser == null
+                    ? null
+                    : () {
+                        final user = _assignUser!;
+                        _run(() async {
+                          await ref
+                              .read(trackerRepoProvider)
+                              .assignTask(_selected!, user);
+                        });
+                      },
+                child: const Text('Assign selected'),
+              ),
+              const SizedBox(height: 12),
+            ],
             if (tree.isEmpty && !_busy)
               const Padding(
                 padding: EdgeInsets.all(24),
                 child: Center(child: Text('No tasks returned.')),
               ),
             ...tree.map(
-              (item) => Card(
-                margin: const EdgeInsets.only(bottom: 10),
-                color: _selected == item.task.name
-                    ? Theme.of(context).colorScheme.primaryContainer
-                    : null,
-                child: ListTile(
-                  contentPadding: EdgeInsets.only(
-                    left: 16.0 + item.depth * 16,
-                    right: 16,
+              (item) {
+                final stage = item.task.displayStage;
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  color: _selected == item.task.name
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : null,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.only(
+                      left: 16.0 + item.depth * 16,
+                      right: 16,
+                    ),
+                    title: Text(item.task.title),
+                    subtitle: Text(
+                      '${item.task.project ?? '—'} · $stage',
+                    ),
+                    trailing: StatusChip(label: stage),
+                    selected: _selected == item.task.name,
+                    onTap: () => setState(() => _selected = item.task.name),
+                    onLongPress: () => context.go('/tasks/${item.task.name}'),
                   ),
-                  title: Text(item.task.title),
-                  subtitle: Text(
-                    '${item.task.project ?? '—'} · ${item.task.priority ?? '—'}',
-                  ),
-                  trailing: StatusChip(label: item.task.status ?? '—'),
-                  selected: _selected == item.task.name,
-                  onTap: () => setState(() => _selected = item.task.name),
-                  onLongPress: () => context.go('/tasks/${item.task.name}'),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),

@@ -19,6 +19,7 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
   String _status = 'Loading…';
   TaskSummary? _task;
   bool _busy = false;
+  bool _canReview = false;
 
   @override
   void initState() {
@@ -32,12 +33,13 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
       _status = 'Loading…';
     });
     try {
-      final task = await ref
-          .read(trackerRepoProvider)
-          .getTask(widget.name);
+      final repo = ref.read(trackerRepoProvider);
+      final task = await repo.getTask(widget.name);
+      final caps = await repo.myCapabilities();
       if (!mounted) return;
       setState(() {
         _task = task;
+        _canReview = caps['can_review'] == true;
         _status = 'Connected';
       });
     } catch (e) {
@@ -48,30 +50,55 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
     }
   }
 
-  Future<void> _setStatus(String next) async {
+  Future<void> _run(Future<void> Function() action, String okMsg) async {
     setState(() => _busy = true);
     try {
-      await ref
-          .read(trackerRepoProvider)
-          .updateTaskStatus(widget.name, next);
+      await action();
       await _refresh();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Updated ${widget.name} → $next')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(okMsg)));
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _status = 'Update failed: $e';
+        _status = 'Failed: $e';
         _busy = false;
       });
     }
   }
 
+  Future<void> _rework() async {
+    final note = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        final c = TextEditingController();
+        return AlertDialog(
+          title: const Text('Request rework'),
+          content: TextField(
+            controller: c,
+            decoration: const InputDecoration(labelText: 'Note'),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, c.text.trim()),
+              child: const Text('Rework'),
+            ),
+          ],
+        );
+      },
+    );
+    if (note == null || note.isEmpty) return;
+    await _run(
+      () => ref.read(trackerRepoProvider).requestRework(widget.name, note),
+      'Rework requested',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = _task;
-    final current = t?.status ?? 'Open';
+    final stage = t?.displayStage ?? '—';
     return Scaffold(
       appBar: AppBar(
         title: Text(t?.title ?? widget.name),
@@ -103,34 +130,47 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
                       Text('Project: ${t.project ?? '—'}'),
                       Text('Priority: ${t.priority ?? '—'}'),
                       const SizedBox(height: 12),
-                      StatusChip(label: current),
+                      StatusChip(label: stage),
                       if (t.description != null &&
                           t.description!.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Text(t.description!),
                       ],
                       const SizedBox(height: 16),
-                      Text(
-                        'Update status',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: kDefaultTaskStatuses.contains(current)
-                            ? current
-                            : 'Open',
-                        items: kDefaultTaskStatuses
-                            .map(
-                              (s) => DropdownMenuItem(value: s, child: Text(s)),
-                            )
-                            .toList(),
-                        onChanged: _busy
-                            ? null
-                            : (v) {
-                                if (v != null) {
-                                  _setStatus(v);
-                                }
-                              },
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (stage == 'In Progress')
+                            FilledButton(
+                              onPressed: _busy
+                                  ? null
+                                  : () => _run(
+                                      () => ref
+                                          .read(trackerRepoProvider)
+                                          .submitForReview(widget.name),
+                                      'Submitted for review',
+                                    ),
+                              child: const Text('Ready for Review'),
+                            ),
+                          if (stage == 'Ready for Review' && _canReview) ...[
+                            FilledButton(
+                              onPressed: _busy
+                                  ? null
+                                  : () => _run(
+                                      () => ref
+                                          .read(trackerRepoProvider)
+                                          .approveTask(widget.name),
+                                      'Approved',
+                                    ),
+                              child: const Text('Approve'),
+                            ),
+                            FilledButton.tonal(
+                              onPressed: _busy ? null : _rework,
+                              child: const Text('Rework'),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),

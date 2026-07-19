@@ -120,7 +120,7 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _assignUser,
+              initialValue: _assignUser,
               decoration: const InputDecoration(
                 labelText: 'Assign to',
                 border: OutlineInputBorder(),

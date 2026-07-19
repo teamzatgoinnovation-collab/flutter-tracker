@@ -140,6 +140,31 @@ class TrackerRepo {
         .toList();
   }
 
+  Future<Map<String, dynamic>> myCapabilities() async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.hierarchyMyTree,
+    );
+    final data = env.data;
+    if (data is! Map) {
+      return {
+        'can_manage_work': false,
+        'can_review': false,
+        'can_submit_timesheets': false,
+      };
+    }
+    return Map<String, dynamic>.from(data);
+  }
+
+  Future<({List<TaskSummary> rows, int? total})> listReviewQueue({
+    int pageSize = 100,
+  }) async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.tasksList,
+      args: {'review_queue': 1, 'page_size': pageSize},
+    );
+    return (rows: _tasks(env.data), total: _total(env.meta));
+  }
+
   Future<TaskSummary> getTask(String name) async {
     final env = await _session.store.callMethod(
       ZatGoApiMethods.tasksGet,
@@ -157,6 +182,40 @@ class TrackerRepo {
       ZatGoApiMethods.updateTaskStatus,
       args: {'name': name, 'status': status},
     );
+  }
+
+  Future<void> submitForReview(String name, {String? note}) async {
+    await _session.store.callMethod(
+      ZatGoApiMethods.tasksSubmitForReview,
+      args: {'name': name, if (note != null) 'note': note},
+    );
+  }
+
+  Future<void> approveTask(String name, {String? note}) async {
+    await _session.store.callMethod(
+      ZatGoApiMethods.tasksApprove,
+      args: {'name': name, if (note != null) 'note': note},
+    );
+  }
+
+  Future<void> requestRework(String name, String note) async {
+    await _session.store.callMethod(
+      ZatGoApiMethods.tasksRequestRework,
+      args: {'name': name, 'note': note},
+    );
+  }
+
+  Future<Map<String, dynamic>> submitTeamTimesheets({
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.timesheetsSubmitTeam,
+      args: {'from_date': fromDate, 'to_date': toDate},
+    );
+    final data = env.data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    return {};
   }
 
   Future<({List<TicketSummary> rows, int? total})> listTickets({

@@ -54,6 +54,7 @@ class TaskSummary {
     required this.name,
     this.subject,
     this.status,
+    this.stage,
     this.project,
     this.priority,
     this.parentTask,
@@ -63,18 +64,22 @@ class TaskSummary {
   final String name;
   final String? subject;
   final String? status;
+  final String? stage;
   final String? project;
   final String? priority;
   final String? parentTask;
   final String? description;
 
   String get title => (subject?.isNotEmpty == true) ? subject! : name;
+  String get displayStage =>
+      (stage?.isNotEmpty == true) ? stage! : (status ?? '');
 
   factory TaskSummary.fromJson(Map<String, dynamic> json) {
     return TaskSummary(
       name: '${json['name'] ?? ''}',
       subject: json['subject']?.toString(),
       status: json['status']?.toString(),
+      stage: json['stage']?.toString(),
       project: json['project']?.toString(),
       priority: json['priority']?.toString(),
       parentTask: json['parent_task']?.toString(),
