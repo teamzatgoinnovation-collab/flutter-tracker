@@ -83,7 +83,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 ],
               ),
             const SizedBox(height: 24),
-            Text('Who is running', style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Who is running',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             if (_running.isEmpty)
               const Text('No active timers.')
@@ -92,7 +95,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 (r) => ListTile(
                   dense: true,
                   title: Text('${r['user'] ?? '—'}'),
-                  subtitle: Text('${r['task'] ?? r['project'] ?? r['name'] ?? '—'}'),
+                  subtitle: Text(
+                    '${r['task'] ?? r['project'] ?? r['name'] ?? '—'}',
+                  ),
                   trailing: Text(_fmtElapsed(r['elapsed_seconds'])),
                 ),
               ),
@@ -150,7 +155,10 @@ class _StatCard extends StatelessWidget {
 }
 
 String _fmtElapsed(dynamic sec) {
-  final s = (sec is num ? sec.toInt() : int.tryParse('$sec') ?? 0).clamp(0, 1 << 31);
+  final s = (sec is num ? sec.toInt() : int.tryParse('$sec') ?? 0).clamp(
+    0,
+    1 << 31,
+  );
   final h = s ~/ 3600;
   final m = (s % 3600) ~/ 60;
   final r = s % 60;

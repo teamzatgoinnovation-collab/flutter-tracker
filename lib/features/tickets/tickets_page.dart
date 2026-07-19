@@ -77,13 +77,15 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
     if (_selected == null || _assignUser == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(trackerRepoProvider).assignTicket(_selected!, _assignUser!);
+      await ref
+          .read(trackerRepoProvider)
+          .assignTicket(_selected!, _assignUser!);
       await _refresh();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Assign failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Assign failed: $e')));
       setState(() => _busy = false);
     }
   }
