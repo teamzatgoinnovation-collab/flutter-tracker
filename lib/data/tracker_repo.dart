@@ -127,7 +127,9 @@ class TrackerRepo {
   }
 
   Future<List<Map<String, dynamic>>> myTreePeople() async {
-    final env = await _session.store.callMethod(ZatGoApiMethods.hierarchyMyTree);
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.hierarchyMyTree,
+    );
     final data = env.data;
     if (data is! Map) return [];
     final people = data['people'];
@@ -160,12 +162,80 @@ class TrackerRepo {
   Future<({List<TicketSummary> rows, int? total})> listTickets({
     int page = 1,
     int pageSize = 50,
+    bool mine = false,
+    bool team = false,
+    String? project,
+    String? status,
   }) async {
+    final args = <String, dynamic>{
+      'page': page,
+      'page_size': pageSize,
+      if (mine) 'mine': 1,
+      if (team) 'team': 1,
+    };
+    if (project != null && project.isNotEmpty) args['project'] = project;
+    if (status != null && status.isNotEmpty) args['status'] = status;
     final env = await _session.store.callMethod(
       ZatGoApiMethods.ticketsList,
-      args: {'page': page, 'page_size': pageSize},
+      args: args,
     );
     return (rows: _tickets(env.data), total: _total(env.meta));
+  }
+
+  Future<Map<String, dynamic>> getFilterPresets() async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.filtersGetPresets,
+    );
+    final data = env.data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    return {'last': null, 'presets': []};
+  }
+
+  Future<void> setLastFilter({
+    required String scope,
+    String? project,
+    String? status,
+  }) async {
+    await _session.store.callMethod(
+      ZatGoApiMethods.filtersSetLast,
+      args: {
+        'scope': scope,
+        if (project != null && project.isNotEmpty) 'project': project,
+        if (status != null && status.isNotEmpty) 'status': status,
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> hoursByProject({
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.hoursByProject,
+      args: {'from_date': fromDate, 'to_date': toDate, 'page_size': 100},
+    );
+    final data = env.data;
+    if (data is! List) return [];
+    return data
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> hoursByUser({
+    required String fromDate,
+    required String toDate,
+  }) async {
+    final env = await _session.store.callMethod(
+      ZatGoApiMethods.hoursByUser,
+      args: {'from_date': fromDate, 'to_date': toDate, 'page_size': 100},
+    );
+    final data = env.data;
+    if (data is! List) return [];
+    return data
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
   }
 
   Future<TicketSummary> createTicket(String subject) async {

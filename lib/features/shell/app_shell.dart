@@ -42,6 +42,11 @@ class AppShell extends StatelessWidget {
             label: 'Tickets',
           ),
           NavigationDestination(
+            icon: Icon(Icons.schedule_outlined),
+            selectedIcon: Icon(Icons.schedule),
+            label: 'Hours',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.settings_ethernet_outlined),
             selectedIcon: Icon(Icons.settings_ethernet),
             label: 'API',

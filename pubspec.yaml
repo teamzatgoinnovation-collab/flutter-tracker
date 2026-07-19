@@ -40,7 +40,7 @@ dependencies:
   firebase_core: ^4.12.1
   firebase_messaging: ^16.4.3
   zatgo_dart_sdk:
-    path: ../../SharedSDK/dart_sdk
+    path: ../../../SharedSDK/dart_sdk
 
 dev_dependencies:
   flutter_test:

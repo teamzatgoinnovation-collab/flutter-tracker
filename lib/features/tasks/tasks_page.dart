@@ -69,6 +69,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       final result = await repo.listTasks(mine: !_team, team: _team);
       final active = await repo.activeSession();
       final people = await repo.myTreePeople();
+      await repo.setLastFilter(scope: _team ? 'team' : 'mine');
       if (!mounted) return;
       setState(() {
         _rows = result.rows;

@@ -11,6 +11,7 @@ import 'features/shell/app_shell.dart';
 import 'features/tasks/task_detail_page.dart';
 import 'features/tasks/tasks_page.dart';
 import 'features/tickets/tickets_page.dart';
+import 'features/reports/reports_page.dart';
 import 'services/session.dart';
 import 'theme.dart';
 
@@ -80,6 +81,14 @@ final _routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/tickets',
                 builder: (context, state) => const TicketsPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/reports',
+                builder: (context, state) => const ReportsPage(),
               ),
             ],
           ),
