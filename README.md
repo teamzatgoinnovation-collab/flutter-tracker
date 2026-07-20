@@ -22,5 +22,5 @@ Org setup and who-is-running detail remain on Frappe Desk (`tracker-org`, `track
 cd Clients/flutter/tracker
 flutter pub get
 flutter run \
-  --dart-define=FRAPPE_BASE_URL=https://erp.zatgo.online
+  --dart-define=FRAPPE_BASE_URL=https://demo.zatgo.online
 ```
