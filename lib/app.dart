@@ -114,7 +114,9 @@ class TrackerApp extends ConsumerWidget {
     final router = ref.watch(_routerProvider);
     return MaterialApp.router(
       title: 'Tracker',
-      theme: buildTrackerTheme(),
+      theme: buildTrackerTheme(brightness: Brightness.light),
+      darkTheme: buildTrackerTheme(brightness: Brightness.dark),
+      themeMode: ThemeMode.system,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

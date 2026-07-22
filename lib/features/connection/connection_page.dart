@@ -22,6 +22,7 @@ class _ConnectionPageState extends ConsumerState<ConnectionPage> {
   Widget build(BuildContext context) {
     final session = ref.watch(trackerSessionProvider);
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
@@ -36,104 +37,128 @@ class _ConnectionPageState extends ConsumerState<ConnectionPage> {
             Text(
               'ERPNext session for Tracker APIs.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: scheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      session.connected
-                          ? 'Signed in as ${session.fullName ?? session.user}'
-                          : 'Not signed in',
-                    ),
-                    const SizedBox(height: 4),
-                    Text(session.baseUrl, style: theme.textTheme.bodySmall),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        FilledButton(
-                          onPressed: _busy
-                              ? null
-                              : () async {
-                                  setState(() => _busy = true);
-                                  await session.logout();
-                                  if (!mounted) return;
-                                  setState(() => _busy = false);
-                                  context.go('/login');
-                                },
-                          child: const Text('Sign out'),
-                        ),
-                        OutlinedButton(
-                          onPressed: _busy
-                              ? null
-                              : () async {
-                                  setState(() => _busy = true);
-                                  final r = await session.ping();
-                                  if (!mounted) return;
-                                  setState(() => _busy = false);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(r.message)),
-                                  );
-                                },
-                          child: const Text('Test site'),
-                        ),
-                        OutlinedButton(
-                          onPressed: _busy
-                              ? null
-                              : () async {
-                                  setState(() {
-                                    _busy = true;
-                                    _probe = 'Probing…';
-                                  });
-                                  try {
-                                    final result = await ref
-                                        .read(trackerRepoProvider)
-                                        .listProjects(pageSize: 5);
-                                    if (!mounted) return;
-                                    setState(() {
-                                      _probe =
-                                          'OK · ${result.rows.length} projects (total ${result.total ?? '—'})';
-                                    });
-                                  } catch (e) {
-                                    if (!mounted) return;
-                                    setState(() => _probe = 'Probe failed: $e');
-                                  } finally {
-                                    if (mounted) setState(() => _busy = false);
-                                  }
-                                },
-                          child: const Text('Probe PT'),
-                        ),
-                        OutlinedButton(
-                          onPressed: _busy
-                              ? null
-                              : () async {
-                                  setState(() => _busy = true);
-                                  final msg = await PushRegistration(
-                                    session,
-                                  ).registerIfPossible();
-                                  if (!mounted) return;
-                                  setState(() => _busy = false);
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).showSnackBar(SnackBar(content: Text(msg)));
-                                },
-                          child: const Text('Register FCM'),
-                        ),
-                      ],
-                    ),
-                    if (_probe.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(_probe),
-                    ],
-                  ],
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.cardTheme.color ?? scheme.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: scheme.outlineVariant.withValues(alpha: 0.7),
                 ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Session',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    session.connected
+                        ? 'Signed in as ${session.fullName ?? session.user}'
+                        : 'Not signed in',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    session.baseUrl,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton(
+                        onPressed: _busy
+                            ? null
+                            : () async {
+                                setState(() => _busy = true);
+                                await session.logout();
+                                if (!mounted) return;
+                                setState(() => _busy = false);
+                                context.go('/login');
+                              },
+                        child: const Text('Sign out'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _busy
+                            ? null
+                            : () async {
+                                setState(() => _busy = true);
+                                final r = await session.ping();
+                                if (!mounted) return;
+                                setState(() => _busy = false);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(r.message)),
+                                );
+                              },
+                        child: const Text('Test site'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _busy
+                            ? null
+                            : () async {
+                                setState(() {
+                                  _busy = true;
+                                  _probe = 'Probing…';
+                                });
+                                try {
+                                  final result = await ref
+                                      .read(trackerRepoProvider)
+                                      .listProjects(pageSize: 5);
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _probe =
+                                        'OK · ${result.rows.length} projects (total ${result.total ?? '—'})';
+                                  });
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  setState(() => _probe = 'Probe failed: $e');
+                                } finally {
+                                  if (mounted) setState(() => _busy = false);
+                                }
+                              },
+                        child: const Text('Probe PT'),
+                      ),
+                      OutlinedButton(
+                        onPressed: _busy
+                            ? null
+                            : () async {
+                                setState(() => _busy = true);
+                                final msg = await PushRegistration(
+                                  session,
+                                ).registerIfPossible();
+                                if (!mounted) return;
+                                setState(() => _busy = false);
+                                ScaffoldMessenger.of(
+                                  context,
+                                ).showSnackBar(SnackBar(content: Text(msg)));
+                              },
+                        child: const Text('Register FCM'),
+                      ),
+                    ],
+                  ),
+                  if (_probe.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _probe,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ],
               ),
             ),
             if (_busy) ...[

@@ -131,8 +131,25 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     return out;
   }
 
+  Color? _priorityTone(String? priority, ColorScheme scheme) {
+    switch ((priority ?? '').toLowerCase()) {
+      case 'urgent':
+      case 'high':
+        return scheme.errorContainer;
+      case 'medium':
+      case 'normal':
+        return scheme.secondaryContainer;
+      case 'low':
+        return scheme.surfaceContainerHighest;
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final activeLabel = _active == null
         ? 'None'
         : '${_active!['status']}: ${_active!['task'] ?? _active!['name']} · ${_fmt(_elapsed)}';
@@ -153,11 +170,16 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
-            Text(_status),
+            Text(
+              _status,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
             if (_busy) const LinearProgressIndicator(),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             SegmentedButton<bool>(
               segments: const [
                 ButtonSegment(value: false, label: Text('My Work')),
@@ -169,24 +191,28 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                 _refresh();
               },
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            Text(
+              'Active session',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Active session',
-                      style: Theme.of(context).textTheme.labelMedium,
-                    ),
-                    Text(
                       activeLabel,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: theme.textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
+                      runSpacing: 8,
                       children: [
                         FilledButton(
                           onPressed: _busy || _selected == null || running
@@ -234,15 +260,21 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
             if (_canManage) ...[
+              const SizedBox(height: 22),
+              Text(
+                'Manage',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
               TextField(
                 controller: _subject,
                 decoration: InputDecoration(
                   labelText: _selected == null
                       ? 'New task subject (Draft)'
                       : 'New subtask under selection',
-                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 8),
@@ -269,7 +301,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                 initialValue: _assignUser,
                 decoration: const InputDecoration(
                   labelText: 'Assign to',
-                  border: OutlineInputBorder(),
                 ),
                 items: [
                   for (final p in _people)
@@ -296,38 +327,93 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                       },
                 child: const Text('Assign selected'),
               ),
-              const SizedBox(height: 12),
             ],
-            if (tree.isEmpty && !_busy)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: Text('No tasks returned.')),
+            const SizedBox(height: 22),
+            Text(
+              'Task list',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
-            ...tree.map(
-              (item) {
-                final stage = item.task.displayStage;
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  color: _selected == item.task.name
-                      ? Theme.of(context).colorScheme.primaryContainer
-                      : null,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.only(
-                      left: 16.0 + item.depth * 16,
-                      right: 16,
-                    ),
-                    title: Text(item.task.title),
-                    subtitle: Text(
-                      '${item.task.project ?? '—'} · $stage',
-                    ),
-                    trailing: StatusChip(label: stage),
-                    selected: _selected == item.task.name,
-                    onTap: () => setState(() => _selected = item.task.name),
-                    onLongPress: () => context.go('/tasks/${item.task.name}'),
-                  ),
-                );
-              },
             ),
+            const SizedBox(height: 10),
+            if (tree.isEmpty && !_busy)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.inbox_outlined,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No tasks returned.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ...tree.map((item) {
+              final stage = item.task.displayStage;
+              final selected = _selected == item.task.name;
+              final priority = item.task.priority;
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                clipBehavior: Clip.antiAlias,
+                color: selected ? scheme.primaryContainer : null,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: selected
+                        ? scheme.primary.withValues(alpha: 0.55)
+                        : scheme.outlineVariant.withValues(alpha: 0.55),
+                    width: selected ? 1.5 : 1,
+                  ),
+                ),
+                child: ListTile(
+                  contentPadding: EdgeInsets.only(
+                    left: 16.0 + item.depth * 16,
+                    right: 16,
+                  ),
+                  title: Text(
+                    item.task.title,
+                    style: TextStyle(
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${item.task.project ?? '—'} · $stage'
+                    '${priority != null && priority.isNotEmpty ? ' · $priority' : ''}',
+                  ),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      StatusChip(label: stage),
+                      if (priority != null && priority.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        StatusChip(
+                          label: priority,
+                          tone: _priorityTone(priority, scheme),
+                        ),
+                      ],
+                    ],
+                  ),
+                  selected: selected,
+                  onTap: () => setState(() => _selected = item.task.name),
+                  onLongPress: () => context.go('/tasks/${item.task.name}'),
+                ),
+              );
+            }),
           ],
         ),
       ),

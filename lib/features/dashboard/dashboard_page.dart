@@ -52,6 +52,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   Widget build(BuildContext context) {
     final stats = _stats;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final connected = _status == 'Connected';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -66,59 +70,157 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
-            Text(_status),
-            if (_busy) const LinearProgressIndicator(),
-            const SizedBox(height: 12),
-            if (stats != null)
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _StatCard(label: 'Projects', value: '${stats.projectsTotal}'),
-                  _StatCard(label: 'Open tasks', value: '${stats.tasksOpen}'),
-                  _StatCard(label: 'Done', value: '${stats.tasksCompleted}'),
-                  _StatCard(label: 'Running', value: '${stats.runningNow}'),
-                ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Chip(
+                visualDensity: VisualDensity.compact,
+                avatar: Icon(
+                  connected ? Icons.check_circle : Icons.cloud_outlined,
+                  size: 16,
+                  color: connected
+                      ? const Color(0xFF15803D)
+                      : scheme.onSurfaceVariant,
+                ),
+                label: Text(_status),
+                side: BorderSide(
+                  color: scheme.outlineVariant.withValues(alpha: 0.7),
+                ),
               ),
+            ),
+            if (_busy) ...[
+              const SizedBox(height: 8),
+              const LinearProgressIndicator(),
+            ],
+            if (stats != null) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.7),
+                  ),
+                  color: theme.cardTheme.color ?? scheme.surface,
+                ),
+                child: Row(
+                  children: [
+                    _MetricCell(
+                      label: 'Projects',
+                      value: '${stats.projectsTotal}',
+                    ),
+                    _MetricDivider(),
+                    _MetricCell(
+                      label: 'Open tasks',
+                      value: '${stats.tasksOpen}',
+                    ),
+                    _MetricDivider(),
+                    _MetricCell(
+                      label: 'Done',
+                      value: '${stats.tasksCompleted}',
+                    ),
+                    _MetricDivider(),
+                    _MetricCell(
+                      label: 'Running',
+                      value: '${stats.runningNow}',
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             Text(
               'Who is running',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             if (_running.isEmpty)
-              const Text('No active timers.')
-            else
-              ..._running.map(
-                (r) => ListTile(
-                  dense: true,
-                  title: Text('${r['user'] ?? '—'}'),
-                  subtitle: Text(
-                    '${r['task'] ?? r['project'] ?? r['name'] ?? '—'}',
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 22,
                   ),
-                  trailing: Text(_fmtElapsed(r['elapsed_seconds'])),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.timer_off_outlined,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No active timers.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Card(
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    for (var i = 0; i < _running.length; i++) ...[
+                      if (i > 0) const Divider(height: 1),
+                      ListTile(
+                        dense: true,
+                        title: Text('${_running[i]['user'] ?? '—'}'),
+                        subtitle: Text(
+                          '${_running[i]['task'] ?? _running[i]['project'] ?? _running[i]['name'] ?? '—'}',
+                        ),
+                        trailing: Text(
+                          _fmtElapsed(_running[i]['elapsed_seconds']),
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             const SizedBox(height: 24),
-            ListTile(
-              leading: const Icon(Icons.folder),
-              title: const Text('Projects'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/projects'),
+            Text(
+              'Navigate',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.task_alt),
-              title: const Text('Tasks'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/tasks'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.confirmation_number),
-              title: const Text('Tickets'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/tickets'),
+            const SizedBox(height: 10),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.folder_outlined),
+                    title: const Text('Projects'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.go('/projects'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.task_alt),
+                    title: const Text('Tasks'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.go('/tasks'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.confirmation_number_outlined),
+                    title: const Text('Tickets'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.go('/tickets'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -127,29 +229,48 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value});
+class _MetricCell extends StatelessWidget {
+  const _MetricCell({required this.label, required this.value});
 
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 150,
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: Theme.of(context).textTheme.labelMedium),
-              const SizedBox(height: 4),
-              Text(value, style: Theme.of(context).textTheme.headlineSmall),
-            ],
-          ),
+    final theme = Theme.of(context);
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+}
+
+class _MetricDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 36,
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.55),
     );
   }
 }

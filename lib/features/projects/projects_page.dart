@@ -71,6 +71,8 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Projects'),
@@ -85,34 +87,84 @@ class _ProjectsPageState extends ConsumerState<ProjectsPage> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
-            Text(_status),
+            Text(
+              _status,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             if (_busy) const LinearProgressIndicator(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            Text(
+              'Create project',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: _name,
               decoration: const InputDecoration(
                 labelText: 'New project name',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 8),
-            FilledButton(
-              onPressed: _busy ? null : _create,
-              child: const Text('Create'),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton(
+                onPressed: _busy ? null : _create,
+                child: const Text('Create'),
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 22),
+            Text(
+              'All projects',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
             if (_rows.isEmpty && !_busy)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: Text('No projects returned.')),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.folder_off_outlined,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No projects returned.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ..._rows.map(
               (p) => Card(
                 margin: const EdgeInsets.only(bottom: 10),
+                clipBehavior: Clip.antiAlias,
                 child: ListTile(
-                  title: Text(p.title),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  title: Text(
+                    p.title,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   subtitle: Text('${p.status ?? '—'} · ${p.company ?? '—'}'),
                   trailing: StatusChip(
                     label: p.ragStatus ?? p.status ?? '—',

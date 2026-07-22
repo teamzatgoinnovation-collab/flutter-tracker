@@ -49,16 +49,30 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hours'),
         actions: const [SignOutAction()],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [
-          Text(_status, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 8),
+          Text(
+            _status,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Date range',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -79,26 +93,88 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
             ],
           ),
-          const SizedBox(height: 16),
-          Text('By project', style: Theme.of(context).textTheme.titleMedium),
-          ..._byProject.map(
-            (r) => ListTile(
-              title: Text('${r['project'] ?? '—'}'),
-              trailing: Text('${(r['hours'] as num?)?.toStringAsFixed(2) ?? '0'} h'),
-              subtitle: Text('${r['entries'] ?? 0} entries'),
+          const SizedBox(height: 22),
+          Text(
+            'By project',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
           ),
-          if (_byProject.isEmpty) const Text('No hours in range.'),
-          const SizedBox(height: 16),
-          Text('By user', style: Theme.of(context).textTheme.titleMedium),
-          ..._byUser.map(
-            (r) => ListTile(
-              title: Text('${r['employee_name'] ?? r['user'] ?? r['employee'] ?? '—'}'),
-              trailing: Text('${(r['hours'] as num?)?.toStringAsFixed(2) ?? '0'} h'),
-              subtitle: Text('${r['user'] ?? ''} · ${r['entries'] ?? 0} entries'),
+          const SizedBox(height: 10),
+          if (_byProject.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No hours in range.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._byProject.map(
+              (r) => Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  title: Text(
+                    '${r['project'] ?? '—'}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  trailing: Text(
+                    '${(r['hours'] as num?)?.toStringAsFixed(2) ?? '0'} h',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  subtitle: Text('${r['entries'] ?? 0} entries'),
+                ),
+              ),
+            ),
+          const SizedBox(height: 22),
+          Text(
+            'By user',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
           ),
-          if (_byUser.isEmpty) const Text('No hours in range.'),
+          const SizedBox(height: 10),
+          if (_byUser.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No hours in range.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._byUser.map(
+              (r) => Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  title: Text(
+                    '${r['employee_name'] ?? r['user'] ?? r['employee'] ?? '—'}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  trailing: Text(
+                    '${(r['hours'] as num?)?.toStringAsFixed(2) ?? '0'} h',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${r['user'] ?? ''} · ${r['entries'] ?? 0} entries',
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

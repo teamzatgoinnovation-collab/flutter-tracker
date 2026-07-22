@@ -92,6 +92,9 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tickets'),
@@ -106,16 +109,27 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
-            Text(_status),
+            Text(
+              _status,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
             if (_busy) const LinearProgressIndicator(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
+            Text(
+              'New ticket',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: _subject,
               decoration: const InputDecoration(
                 labelText: 'New ticket subject',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 8),
@@ -123,7 +137,6 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
               initialValue: _assignUser,
               decoration: const InputDecoration(
                 labelText: 'Assign to',
-                border: OutlineInputBorder(),
               ),
               items: [
                 for (final p in _people)
@@ -152,14 +165,70 @@ class _TicketsPageState extends ConsumerState<TicketsPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 22),
+            Text(
+              'All tickets',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (_rows.isEmpty && !_busy)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.confirmation_number_outlined,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No tickets yet.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             for (final row in _rows)
-              ListTile(
-                selected: _selected == row.name,
-                title: Text(row.title),
-                subtitle: Text(row.project ?? '—'),
-                trailing: StatusChip(label: row.status ?? '—'),
-                onTap: () => setState(() => _selected = row.name),
+              Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                clipBehavior: Clip.antiAlias,
+                color: _selected == row.name
+                    ? scheme.primaryContainer
+                    : null,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: _selected == row.name
+                        ? scheme.primary.withValues(alpha: 0.55)
+                        : scheme.outlineVariant.withValues(alpha: 0.55),
+                    width: _selected == row.name ? 1.5 : 1,
+                  ),
+                ),
+                child: ListTile(
+                  selected: _selected == row.name,
+                  title: Text(
+                    row.title,
+                    style: TextStyle(
+                      fontWeight: _selected == row.name
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(row.project ?? '—'),
+                  trailing: StatusChip(label: row.status ?? '—'),
+                  onTap: () => setState(() => _selected = row.name),
+                ),
               ),
           ],
         ),

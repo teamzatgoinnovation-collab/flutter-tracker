@@ -56,7 +56,9 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
       await action();
       await _refresh();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(okMsg)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(okMsg)));
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -79,7 +81,10 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
             maxLines: 3,
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, c.text.trim()),
               child: const Text('Rework'),
@@ -95,10 +100,27 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
     );
   }
 
+  Color? _priorityTone(String? priority, ColorScheme scheme) {
+    switch ((priority ?? '').toLowerCase()) {
+      case 'urgent':
+      case 'high':
+        return scheme.errorContainer;
+      case 'medium':
+      case 'normal':
+        return scheme.secondaryContainer;
+      case 'low':
+        return scheme.surfaceContainerHighest;
+      default:
+        return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = _task;
     final stage = t?.displayStage ?? '—';
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(t?.title ?? widget.name),
@@ -110,12 +132,24 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
           children: [
-            Text(_status),
+            Text(
+              _status,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             if (_busy) const LinearProgressIndicator(),
             if (t != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
+              Text(
+                'Details',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -124,57 +158,83 @@ class _TaskDetailPageState extends ConsumerState<TaskDetailPage> {
                     children: [
                       Text(
                         t.title,
-                        style: Theme.of(context).textTheme.titleLarge,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Text('Project: ${t.project ?? '—'}'),
-                      Text('Priority: ${t.priority ?? '—'}'),
                       const SizedBox(height: 12),
-                      StatusChip(label: stage),
-                      if (t.description != null &&
-                          t.description!.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Text(t.description!),
-                      ],
-                      const SizedBox(height: 16),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          if (stage == 'In Progress')
-                            FilledButton(
-                              onPressed: _busy
-                                  ? null
-                                  : () => _run(
-                                      () => ref
-                                          .read(trackerRepoProvider)
-                                          .submitForReview(widget.name),
-                                      'Submitted for review',
-                                    ),
-                              child: const Text('Ready for Review'),
+                          StatusChip(label: stage),
+                          StatusChip(
+                            label: 'Priority ${t.priority ?? '—'}',
+                            tone: _priorityTone(
+                              t.priority,
+                              theme.colorScheme,
                             ),
-                          if (stage == 'Ready for Review' && _canReview) ...[
-                            FilledButton(
-                              onPressed: _busy
-                                  ? null
-                                  : () => _run(
-                                      () => ref
-                                          .read(trackerRepoProvider)
-                                          .approveTask(widget.name),
-                                      'Approved',
-                                    ),
-                              child: const Text('Approve'),
-                            ),
-                            FilledButton.tonal(
-                              onPressed: _busy ? null : _rework,
-                              child: const Text('Rework'),
-                            ),
-                          ],
+                          ),
                         ],
                       ),
+                      if (t.description != null &&
+                          t.description!.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        Text(
+                          t.description!,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 22),
+              Text(
+                'Actions',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (stage == 'In Progress')
+                    FilledButton(
+                      onPressed: _busy
+                          ? null
+                          : () => _run(
+                              () => ref
+                                  .read(trackerRepoProvider)
+                                  .submitForReview(widget.name),
+                              'Submitted for review',
+                            ),
+                      child: const Text('Ready for Review'),
+                    ),
+                  if (stage == 'Ready for Review' && _canReview) ...[
+                    FilledButton(
+                      onPressed: _busy
+                          ? null
+                          : () => _run(
+                              () => ref
+                                  .read(trackerRepoProvider)
+                                  .approveTask(widget.name),
+                              'Approved',
+                            ),
+                      child: const Text('Approve'),
+                    ),
+                    FilledButton.tonal(
+                      onPressed: _busy ? null : _rework,
+                      child: const Text('Rework'),
+                    ),
+                  ],
+                ],
               ),
             ],
           ],
