@@ -187,14 +187,14 @@ class TrackerRepo {
   Future<void> submitForReview(String name, {String? note}) async {
     await _session.store.callMethod(
       ZatGoApiMethods.tasksSubmitForReview,
-      args: {'name': name, if (note != null) 'note': note},
+      args: {'name': name, 'note': ?note},
     );
   }
 
   Future<void> approveTask(String name, {String? note}) async {
     await _session.store.callMethod(
       ZatGoApiMethods.tasksApprove,
-      args: {'name': name, if (note != null) 'note': note},
+      args: {'name': name, 'note': ?note},
     );
   }
 
@@ -340,8 +340,9 @@ class TrackerRepo {
   }
 
   Future<void> nextActivity(String task) async {
+    await _session.store.callMethod(ZatGoApiMethods.activityStop);
     await _session.store.callMethod(
-      ZatGoApiMethods.activityNext,
+      ZatGoApiMethods.activityStart,
       args: {'task': task},
     );
   }

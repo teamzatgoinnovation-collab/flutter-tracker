@@ -87,7 +87,7 @@ class _ConnectionPageState extends ConsumerState<ConnectionPage> {
                             : () async {
                                 setState(() => _busy = true);
                                 await session.logout();
-                                if (!mounted) return;
+                                if (!context.mounted) return;
                                 setState(() => _busy = false);
                                 context.go('/login');
                               },
@@ -99,7 +99,7 @@ class _ConnectionPageState extends ConsumerState<ConnectionPage> {
                             : () async {
                                 setState(() => _busy = true);
                                 final r = await session.ping();
-                                if (!mounted) return;
+                                if (!context.mounted) return;
                                 setState(() => _busy = false);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text(r.message)),
@@ -141,7 +141,7 @@ class _ConnectionPageState extends ConsumerState<ConnectionPage> {
                                 final msg = await PushRegistration(
                                   session,
                                 ).registerIfPossible();
-                                if (!mounted) return;
+                                if (!context.mounted) return;
                                 setState(() => _busy = false);
                                 ScaffoldMessenger.of(
                                   context,
